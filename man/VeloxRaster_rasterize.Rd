@@ -2,26 +2,33 @@
 % Please edit documentation in R/velox_rasterize.R
 \name{VeloxRaster_rasterize}
 \alias{VeloxRaster_rasterize}
-\title{Rasterize Polygons}
+\title{Rasterize Polygons or Lines}
 \arguments{
-\item{spdf}{A SpatialPolygonsDataFrame object.}
+\item{spdf}{A sf POLYGON or MULTIPOLYGON object, a sf LINE or MULTILINE object, a SpatialPolygonsDataFrame object, or a SpatialLinesDataFrame object.}
 
 \item{field}{A character string corresponding to the name of a numeric column in \code{spdf}.}
 
 \item{band}{A positive integer denoting the ID of the band where the rasterized values are written.}
 
 \item{background}{Optional. A numeric value assigned to all background cells.}
+
+\item{small}{Boolean. If TRUE and spdf contains polygons, then intersections for small (or oddly shaped) polygons that do not intersect with any cell centroid
+are established by intersecting the small polygon with the entire (boxed) cells.}
 }
 \value{
 Void.
 }
 \description{
-Rasterizes a SpatialPolygonsDataFrame, i.e. assigns the values in the \code{field} column of the
-SPDF to the raster cells intersecting with the respective SpatialPolygon.
+Rasterizes a collection of polygons or lines, i.e. assigns the values in the \code{field} column of the
+SPDF to the raster cells intersecting with the respective geometry.
 }
 \details{
 Note that rasterization is performed sequentially. Hence, cells being contained by multiple polygons
 are assigned the value of the last polygon in the \code{spdf} object.
+If argument \code{small = TRUE}, then the values of small polygons are assigned last.
+
+If spdf contains polygons, then cell-polygon intersections are calculated based on cell centroids (but see argument \code{small}).
+If spdf contains lines, then regular cell-line intersections are calculated.
 }
 \examples{
 ## Make VeloxRaster

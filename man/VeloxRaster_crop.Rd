@@ -4,7 +4,7 @@
 \alias{VeloxRaster_crop}
 \title{Crop a VeloxRaster object}
 \arguments{
-\item{y}{An object from which an \code{extent} object can be extracted. Usually a Spatial* or Raster* object.}
+\item{y}{An object from which an \code{extent} object can be extracted. Usually a sf, Spatial* or Raster* object.}
 }
 \value{
 Void.
@@ -13,8 +13,7 @@ Void.
 \code{crop}s a VeloxRaster object
 }
 \details{
-Crops a VeloxRaster object to the extent of y. Note that currently the
-extent of y must overlap with the extent of x, otherwise an error is thrown.
+Crops a VeloxRaster object to the extent of y.
 }
 \examples{
 ## Make VeloxRaster

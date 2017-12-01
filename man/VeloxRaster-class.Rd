@@ -26,13 +26,15 @@ A Reference Class for velox rasters
 \section{Methods}{
 
 \describe{
-\item{\code{aggregate(factor, aggtype = "sum")}}{See \code{\link{VeloxRaster_aggregate}}.}
+\item{\code{aggregate(factor, aggtype = c("sum", "mean", "min", "max", "median"))}}{See \code{\link{VeloxRaster_aggregate}}.}
 
 \item{\code{as.matrix(band = 1)}}{See \code{\link{VeloxRaster_as.matrix}}.}
 
-\item{\code{as.RasterLayer(band = 1)}}{See \code{\link{VeloxRaster_as.RasterLayer}}.}
+\item{\code{as.RasterBrick(assign_data_type = FALSE)}}{See \code{\link{VeloxRaster_as.RasterBrick}}.}
 
-\item{\code{as.RasterStack()}}{See \code{\link{VeloxRaster_as.RasterStack}}.}
+\item{\code{as.RasterLayer(band = 1, assign_data_type = FALSE)}}{See \code{\link{VeloxRaster_as.RasterLayer}}.}
+
+\item{\code{as.RasterStack(assign_data_type = FALSE)}}{See \code{\link{VeloxRaster_as.RasterStack}}.}
 
 \item{\code{col2im(mat, wrow, wcol, band, rowframe = 0, colframe = 0, rowstride = 1,
   colstride = 1)}}{See \code{\link{VeloxRaster_col2im}}.}
@@ -41,9 +43,13 @@ A Reference Class for velox rasters
 
 \item{\code{drop(bands)}}{See \code{\link{VeloxRaster_drop}}.}
 
-\item{\code{extract(sp, fun)}}{See \code{\link{VeloxRaster_extract}}.}
+\item{\code{extract(sp, fun = NULL, df = FALSE, small = FALSE, legacy = FALSE)}}{See \code{\link{VeloxRaster_extract}}.}
+
+\item{\code{extract_points(sp)}}{See \code{\link{VeloxRaster_extract_points}}.}
 
 \item{\code{getCoordinates()}}{See \code{\link{VeloxRaster_getCoordinates}}.}
+
+\item{\code{get_data_type()}}{See \code{\link{VeloxRaster_get_data_type}}.}
 
 \item{\code{im2col(wrow, wcol, band, padval = 0, rowframe = 0, colframe = 0,
   rowstride = 1, colstride = 1)}}{See \code{\link{VeloxRaster_im2col}}.}
@@ -52,7 +58,7 @@ A Reference Class for velox rasters
 
 \item{\code{medianFocal(wrow, wcol, bands = 1)}}{See \code{\link{VeloxRaster_medianFocal}}.}
 
-\item{\code{rasterize(spdf, field, band = 1, background = NULL)}}{See \code{\link{VeloxRaster_rasterize}}.}
+\item{\code{rasterize(spdf, field, band = 1, background = NULL, small = FALSE)}}{See \code{\link{VeloxRaster_rasterize}}.}
 
 \item{\code{sumFocal(weights, bands = 1)}}{See \code{\link{VeloxRaster_sumFocal}}.}
 

@@ -38,7 +38,7 @@ VeloxRaster <- setRefClass("VeloxRaster",
 #' Note that if \code{x} is a list of VeloxRasters, the \code{extent} and \code{crs} attributes are copied
 #' from the first list element.
 #'
-#' @param x A RasterLayer, RasterStack, matrix, list of matrices, list of VeloxRaster objects,
+#' @param x A Raster* object, matrix, list of matrices, list of VeloxRaster objects,
 #'  or character string pointing to a GDAL-readable file.
 #' @param extent An \code{extent} object or a numeric vector of length 4. Required if \code{x} is a matrix or list
 #' of matrices, ignored otherwise.
@@ -81,9 +81,7 @@ velox <- function(x, extent=NULL, res=NULL, crs=NULL) {
     obj <- VeloxRaster$new(rasterbands=rasterbands, dim=dim, extent=extent, res=res, nbands=1, crs=crs)
 
     return(obj)
-  }
-
-  if (is(x, "RasterStack")) {
+  } else if (is(x, "RasterStack")) {
 
     extent = as.vector(extent(x))
     origin = c(extent[1], extent[4])
@@ -103,9 +101,27 @@ velox <- function(x, extent=NULL, res=NULL, crs=NULL) {
     obj <- VeloxRaster$new(rasterbands=rasterbands, dim=dim, extent=extent, res=res, nbands=nbands, crs=crs)
 
     return(obj)
-  }
+  } else if (is(x, "RasterBrick")) {
 
-  if (is(x, "matrix")) {
+    extent = as.vector(extent(x))
+    origin = c(extent[1], extent[4])
+    dim = c(nrow(x), ncol(x))
+    res = res(x)
+    if (is.na(crs(x))) {
+      crs = ""
+    } else {
+      crs = crs(x, asText=TRUE)
+    }
+    nbands = raster::nlayers(x)
+    rasterbands <- vector("list", nbands)
+    for (k in 1:length(rasterbands)) {
+      rasterbands[[k]] <- as.matrix(x[[k]])
+    }
+
+    obj <- VeloxRaster$new(rasterbands=rasterbands, dim=dim, extent=extent, res=res, nbands=nbands, crs=crs)
+
+    return(obj)
+  } else if (is(x, "matrix")) {
 
     if (is.null(extent) | is.null(res)) {
       stop("extent and res arguments needed.")
@@ -125,9 +141,7 @@ velox <- function(x, extent=NULL, res=NULL, crs=NULL) {
     obj <- VeloxRaster$new(rasterbands=rasterbands, dim=dim, extent=extent, res=res, nbands=1, crs=crs)
 
     return(obj)
-  }
-
-  if (is(x, "list")) {
+  } else if (is(x, "list")) {
     if (is(x[[1]], "matrix")) {
       ## List of matrices
 
@@ -186,9 +200,7 @@ velox <- function(x, extent=NULL, res=NULL, crs=NULL) {
     } else {
       stop("If x is a list, its elements must be of class 'matrix' or 'VeloxRaster'.")
     }
-  }
-
-  if (is(x, "character")) {
+  } else if (is(x, "character")) {
 
     if (!file.exists(x)) {
       stop(paste("File", x, "does not exist."))
@@ -216,8 +228,83 @@ velox <- function(x, extent=NULL, res=NULL, crs=NULL) {
     obj <- VeloxRaster$new(rasterbands=rasterbands, dim=dim, extent=extent, res=res, nbands=nbands, crs=crs)
 
     return(obj)
+  } else {
+    stop("x is not of a supported class.")
   }
 }
+
+
+#' Get data type of a VeloxRaster
+#'
+#' @details Note that this method returns the data type of the raster, not the storage mode.
+#' Except in special cases, velox stores all raster data as double precision matrices.
+#'
+#' @name VeloxRaster_get_data_type
+#'
+#' @return A character string denoting a GDAL data type.
+#'
+NULL
+VeloxRaster$methods(get_data_type = function() {
+  "See \\code{\\link{VeloxRaster_get_data_type}}."
+
+  chk.vec <- checktype_cpp(.self$rasterbands)
+  isint <- as.logical(chk.vec[1])
+  isneg <- as.logical(chk.vec[2])
+  maxval <- chk.vec[3]
+  if (isint) {
+    if (!isneg) {
+      # Positive integers
+      is_uint16 <- maxval<=65534
+      if (is_uint16) {
+        is_byte <- maxval<=255
+        if (is_byte) {
+          type <- "Byte"
+        } else {
+          type <- "UInt16"
+        }
+      } else {
+        is_uint32 <- maxval<=4294967296
+        if (is_uint32) {
+          type <- "UInt32"
+        } else {
+          is_float32 <- maxval<=3.4e+38
+          if (is_float32) {
+            type <- "Float32"
+          } else {
+            type <- "Float64"
+          }
+        }
+      }
+    } else {
+      # Negative integers
+      is_int16 <- maxval<=32767
+      if (is_int16) {
+        type <- "Int16"
+      } else {
+        is_int32 <- maxval<=2147483647
+        if (is_int32) {
+          type <- "Int32"
+        } else {
+          is_float32 <- maxval<=3.4e+38
+          if (is_float32) {
+            type <- "Float32"
+          } else {
+            type <- "Float64"
+          }
+        }
+      }
+    }
+  } else {
+    is_float32 <- maxval<=3.4e+38
+    if (is_float32) {
+      type <- "Float32"
+    } else {
+      type <- "Float64"
+    }
+  }
+
+  return(type)
+})
 
 
 
@@ -241,43 +328,18 @@ VeloxRaster$methods(write = function(path, overwrite=FALSE) {
     stop(paste("Directory", dir.path, "does not exists."))
   }
   if (file.exists(path) & !overwrite) {
-    stop("File already exists. use overwrite=FALSE to overwrite.")
+    stop("File already exists. use overwrite=TRUE to overwrite.")
   }
   if (overwrite & file.exists(path)) {
     file.remove(path)
   }
 
-  ## Determine data type
-  chk.vec <- checktype_cpp(.self$rasterbands)
-  isint <- as.logical(chk.vec[1])
-  isneg <- as.logical(chk.vec[2])
-  maxval <- chk.vec[3]
-  if (isint) {
+  ## Determine data type & change storage mode to integer (if appropriate)
+  type <- .self$get_data_type()
+  if (grepl('int|byte', tolower(type))) {
     for (i in 1:.self$nbands) {
       storage.mode(.self$rasterbands[[i]]) <- "integer"
     }
-    if (!isneg) {
-      int16 <- maxval<65534
-      if (int16) {
-        byte <- maxval<=255
-        if (byte) {
-          type <- "Byte"
-        } else {
-          type <- "UInt16"
-        }
-      } else {
-        type <- "UInt32"
-      }
-    } else {
-      int16 <- maxval<32767
-      if (int16) {
-        type <- "Int16"
-      } else {
-        type <- "Int32"
-      }
-    }
-  } else {
-    type <- "Float32"
   }
 
   ## Make driver object
